@@ -106,12 +106,25 @@ public class FileSystemCache extends Cache implements ScrobbleCache {
 		File f = new File(cacheDir, cacheEntryName + ".xml");
 		try {
 			BufferedInputStream is = new BufferedInputStream(inputStream);
-			BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+			ByteArrayOutputStream readStream = new ByteArrayOutputStream();
 			int read;
 			byte[] buffer = new byte[4096];
 			while ((read = is.read(buffer)) != -1) {
-				os.write(buffer, 0, read);
+				for (int i = 0; i < read; i++) {
+					byte b = buffer[i];
+					if (isValidXmlCharacter(b)) {
+						readStream.write(b);
+					} else {
+						System.out.println("invalid character " + b + " -- in cacheEntryName: " + cacheEntryName);
+					}
+				}
 			}
+
+			String xml = readStream.toString("UTF-8");
+			xml = xml.replaceAll("[\\u0000-\\uffff&&[^\\u0009\\u000a\\u000d\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]]", ""); // Remove invalid XML characters
+			BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(f));
+			os.write(xml.getBytes("UTF-8"));
+
 			os.close();
 			is.close();
 			File fm = new File(cacheDir, cacheEntryName + ".meta");
@@ -121,6 +134,16 @@ public class FileSystemCache extends Cache implements ScrobbleCache {
 		} catch (IOException e) {
 			// we ignore the exception. if something went wrong we just don't cache it.
 		}
+	}
+
+	private static boolean isValidXmlCharacter(byte b) {
+		int codePoint = b & 0xFF;
+		return (codePoint == 0x9) ||
+				(codePoint == 0xA) ||
+				(codePoint == 0xD) ||
+				((codePoint >= 0x20) && (codePoint <= 0xD7FF)) ||
+				((codePoint >= 0xE000) && (codePoint <= 0xFFFD)) ||
+				((codePoint >= 0x10000) && (codePoint <= 0x10FFFF));
 	}
 
 	private void createCache() {
