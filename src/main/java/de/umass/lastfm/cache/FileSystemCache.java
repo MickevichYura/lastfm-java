@@ -121,7 +121,8 @@ public class FileSystemCache extends Cache implements ScrobbleCache {
 			}
 
 			String xml = readStream.toString("UTF-8");
-			xml = xml.replaceAll("[\\u0000-\\uffff&&[^\\u0009\\u000a\\u000d\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]]", ""); // Remove invalid XML characters
+			xml = xml.replaceAll("[\\u0000-\\uffff&&[^\\u0009\\u000a\\u000d\\u0020-\\ud7ff\\ue000-\\ufffd\\u10000-\\u10ffff]]", "")
+					.replace("\u0014", ""); // Remove invalid XML characters
 			BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(f));
 			os.write(xml.getBytes("UTF-8"));
 
